@@ -279,3 +279,12 @@ Feel free to use, modify, and extend the project with proper attribution.
 ---
 
 ⭐ If you found this project useful, consider giving it a star on GitHub.
+
+
+
+
+
+result snapshot
+
+<img width="933" height="397" alt="Screenshot 2026-06-16 152847" src="https://github.com/user-attachments/assets/0e800ebd-959a-4a38-b018-4a06e24d0125" />
+
