@@ -287,4 +287,11 @@ Feel free to use, modify, and extend the project with proper attribution.
 result snapshot
 
 <img width="933" height="397" alt="Screenshot 2026-06-16 152847" src="https://github.com/user-attachments/assets/0e800ebd-959a-4a38-b018-4a06e24d0125" />
+<img width="952" height="448" alt="Screenshot 2026-06-16 152911" src="https://github.com/user-attachments/assets/8d498636-07e6-455d-982a-4ea83e42bfed" />
+<img width="928" height="518" alt="Screenshot 2026-06-16 152924" src="https://github.com/user-attachments/assets/649d17c3-d485-49b6-bd7b-fb3bfa6d3cb6" />
+<img width="922" height="435" alt="Screenshot 2026-06-16 152941" src="https://github.com/user-attachments/assets/88d05da8-9772-4992-b87e-27a022745f3a" />
+<img width="965" height="453" alt="Screenshot 2026-06-16 152958" src="https://github.com/user-attachments/assets/96589894-5f96-49e4-a0b1-d58fc6db6245" />
+
+
+
 
