@@ -1,4 +1,3 @@
-
 /* ================= GLOBAL STATE ================= */
 let locationsData = [];
 let currentLang = "en";
@@ -94,7 +93,7 @@ function updateStaticText() {
 }
 
 /* ================= LOAD DATA ================= */
-fetch("locations.json?v=24")
+fetch("locations.json")
   .then((res) => res.json())
   .then((data) => {
     locationsData = data;
@@ -158,7 +157,7 @@ function matchesSearch(l) {
   if (!searchQuery) return true;
 
   const query = searchQuery.toLowerCase();
-  const allLanguages = ["en", "te", "hi", "ta", "kn", "ml"];
+  const allLanguages = ["en", "te", "hi", "ta", "kn", "ml", "ur"];
 
   let searchableText = "";
   searchableText += (l["display name"] || "").toLowerCase() + " ";
@@ -168,7 +167,7 @@ function matchesSearch(l) {
   });
 
   allLanguages.forEach((lang) => {
-    const catLabel = CATEGORY_LABELS[l.category]?.[lang];
+    const catLabel = CATEGORY_LABELS[(l.category || "").trim().toUpperCase()]?.[lang];
     if (catLabel) searchableText += catLabel.toLowerCase() + " ";
   });
 
@@ -181,350 +180,160 @@ function matchesSearch(l) {
   return searchableText.includes(query);
 }
 
-/* ================= SPEECH DETAILS HELPER ================= */
-function speakDetails(item) {
-  // Cancel any ongoing speech synthesis to prevent overlapping audio
-  window.speechSynthesis.cancel();
-
-  const name = item["name_" + currentLang] || item["display name"] || "";
-  const description = item["description_" + currentLang] || "";
-  const directionsLabel = {
-    en: "Directions",
-    te: "దిశలు / మార్గం",
-    hi: "दिशा-निर्देश",
-    ta: "வழிகள்",
-    kn: "ಮಾರ್ಗಗಳು",
-    ml: "ദിശകൾ",
-    ur: "ہدایات"
-  }[currentLang] || "Directions";
-  const directionText = item["direction_" + currentLang] || item.direction_en || "";
-
-  let textToSpeak = `${name}. ${description}.`;
-  if (directionText) {
-    textToSpeak += ` ${directionsLabel}: ${directionText}`;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(textToSpeak);
-  utterance.lang = LANG_CODES[currentLang] || "en-US";
-  window.speechSynthesis.speak(utterance);
-}
-
 /* ================= DETAILS PAGE ================= */
 function openDetailsPage(item) {
-  // Hide global hero section to avoid header clutter
-  const hero = document.getElementById("hero-section");
-  if (hero) hero.style.display = "none";
+  /* --- Hide every section except #app --- */
+  const heroEl    = document.getElementById("hero-section");
+  const nimsEl    = document.getElementById("Nims-Entrance-container");
+  const opdEl     = document.getElementById("Opd-Entrance-container");
+  const srEl      = document.getElementById("search-results");
+  if (heroEl)  heroEl.style.display  = "none";
+  if (nimsEl)  nimsEl.style.display  = "none";
+  if (opdEl)   opdEl.style.display   = "none";
+  if (srEl)    srEl.style.display    = "none";
 
   const app = document.getElementById("app");
   app.innerHTML = "";
+  app.style.display = "block";
+
+  /* Push history so the browser Back button works */
+  history.pushState({ level: "details" }, "");
 
   const page = document.createElement("div");
-  page.style.display = "flex";
-  page.style.flexDirection = "column";
-  page.style.gap = "20px";
-  page.style.padding = "20px";
+  page.style.cssText = "display:flex;flex-direction:column;gap:16px;padding:16px;max-width:960px;margin:0 auto;";
 
-  // Create a premium "Back" button
+  /* ---- BACK BUTTON ---- */
   const backBtn = document.createElement("button");
-  const BACK_LABELS = {
-    en: "← Back",
-    te: "← వెనుకకు",
-    hi: "← पीछे जाएं",
-    ta: "← பின்னால்",
-    kn: "← ಹಿಂದೆ",
-    ml: "← പിന്നിലേക്ക്",
-    ur: "← پیچھے"
-  };
-  backBtn.textContent = BACK_LABELS[currentLang] || BACK_LABELS.en;
-  backBtn.style.alignSelf = "flex-start";
-  backBtn.style.padding = "10px 18px";
-  backBtn.style.fontSize = "15px";
-  backBtn.style.fontWeight = "bold";
-  backBtn.style.cursor = "pointer";
-  backBtn.style.border = "2px solid #0077b5";
-  backBtn.style.borderRadius = "8px";
-  backBtn.style.background = "#fff";
-  backBtn.style.color = "#0077b5";
-  backBtn.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
-  backBtn.style.transition = "all 0.2s ease";
-  backBtn.style.marginBottom = "10px";
-
-  backBtn.onmouseenter = () => {
-    backBtn.style.background = "#0077b5";
-    backBtn.style.color = "#fff";
-    backBtn.style.transform = "translateY(-1px)";
-    backBtn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
-  };
-  backBtn.onmouseleave = () => {
-    backBtn.style.background = "#fff";
-    backBtn.style.color = "#0077b5";
-    backBtn.style.transform = "translateY(0)";
-    backBtn.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
-  };
-
+  backBtn.textContent = "← Back";
+  backBtn.style.cssText = "align-self:flex-start;background:none;border:none;color:#1a73e8;font-size:15px;font-weight:600;cursor:pointer;padding:4px 0;";
   backBtn.onclick = () => {
-    // Cancel speaking when leaving details page
     window.speechSynthesis.cancel();
-
-    const hero = document.getElementById("hero-section");
-    if (hero) hero.style.display = searchQuery ? "none" : "block";
-    searchQuery ? renderSearchResults() : renderApp();
+    if (heroEl)  heroEl.style.display  = "";
+    if (nimsEl)  nimsEl.style.display  = "";
+    if (opdEl)   opdEl.style.display   = "";
+    renderApp();
+    history.back();
   };
   page.appendChild(backBtn);
 
-  const hasInternalImages = item.image_layout && item.image_real;
+  /* ---- IMAGE SECTION ---- */
+  const hasLayout = item.image_layout;
+  const hasReal   = item.image_real;
 
-  // Horizontal container for images sitting side-by-side
-  const imagesRow = document.createElement("div");
-  imagesRow.style.width = "100%";
-
-  if (hasInternalImages) {
-    // Side-by-side panoramic view of images
-    imagesRow.style.display = "flex";
-    imagesRow.style.flexDirection = "row";
-    imagesRow.style.flexWrap = "wrap";
-    imagesRow.style.justifyContent = "center";
-    imagesRow.style.gap = "20px";
-    imagesRow.style.marginBottom = "10px";
-
-    // 1. Layout Map Container
-    const layoutContainer = document.createElement("div");
-    layoutContainer.style.flex = "1 1 300px";
-    layoutContainer.style.maxWidth = "450px";
-    layoutContainer.style.textAlign = "center";
-    layoutContainer.style.background = "#fcfcfc";
-    layoutContainer.style.padding = "12px";
-    layoutContainer.style.borderRadius = "12px";
-    layoutContainer.style.border = "1px solid #eef0f2";
-    layoutContainer.style.boxShadow = "0 3px 10px rgba(0,0,0,0.04)";
-
-    const layoutImg = document.createElement("img");
-    layoutImg.src = item.image_layout;
-    layoutImg.alt = "Floor Layout Map";
-    layoutImg.style.width = "100%";
-    layoutImg.style.borderRadius = "8px";
-    layoutImg.style.display = "block";
-    layoutImg.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
-
-    const layoutLabel = document.createElement("div");
-    layoutLabel.style.fontSize = "14px";
-    layoutLabel.style.fontWeight = "bold";
-    layoutLabel.style.color = "#555";
-    layoutLabel.style.marginTop = "10px";
-    const LAYOUT_MAP_LABELS = {
-      en: "Floor Layout Map",
-      te: "ఫ్లోర్ లేఅవుట్ పటం",
-      hi: "फ्लोर लेआउट मानचित्र",
-      ta: "தரை தள வரைபடம்",
-      kn: "ಮಹಡಿ ವಿನ್ಯಾಸ ನಕ್ಷೆ",
-      ml: "ഫ്ലോർ ലേഔട്ട് മാപ്പ്",
-      ur: "فلور لے آؤٹ کا نقشہ"
-    };
-    layoutLabel.textContent = LAYOUT_MAP_LABELS[currentLang] || LAYOUT_MAP_LABELS.en;
-
-    layoutContainer.appendChild(layoutImg);
-    layoutContainer.appendChild(layoutLabel);
-    imagesRow.appendChild(layoutContainer);
-
-    // 2. Real Photo Container
-    const realContainer = document.createElement("div");
-    realContainer.style.flex = "1 1 300px";
-    realContainer.style.maxWidth = "450px";
-    realContainer.style.textAlign = "center";
-    realContainer.style.background = "#fcfcfc";
-    realContainer.style.padding = "12px";
-    realContainer.style.borderRadius = "12px";
-    realContainer.style.border = "1px solid #eef0f2";
-    realContainer.style.boxShadow = "0 3px 10px rgba(0,0,0,0.04)";
-
-    const realImg = document.createElement("img");
-    realImg.src = item.image_real;
-    realImg.alt = "Room Entrance Photo";
-    realImg.style.width = "100%";
-    realImg.style.borderRadius = "8px";
-    realImg.style.display = "block";
-    realImg.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
-
-    const realLabel = document.createElement("div");
-    realLabel.style.fontSize = "14px";
-    realLabel.style.fontWeight = "bold";
-    realLabel.style.color = "#555";
-    realLabel.style.marginTop = "10px";
-    const REAL_PHOTO_LABELS = {
-      en: "Room Entrance Photo",
-      te: "గది ప్రవేశ ద్వారం ఫోటో",
-      hi: "कमरे के प्रवेश द्वार की तस्वीर",
-      ta: "அறை நுழைவாயில் புகைப்படம்",
-      kn: "ಕೊಠಡಿ ಪ್ರವೇಶ ದ್ವಾರದ ಫೋಟೋ",
-      ml: "മുറി പ്രവേശന ഫോട്ടോ",
-      ur: "کمرے کے داخلے کی تصویر"
-    };
-    realLabel.textContent = REAL_PHOTO_LABELS[currentLang] || REAL_PHOTO_LABELS.en;
-
-    realContainer.appendChild(realImg);
-    realContainer.appendChild(realLabel);
-    imagesRow.appendChild(realContainer);
-
-    page.appendChild(imagesRow);
-
-  } else {
-    // Default single image layout (centered, top)
-    imagesRow.style.display = "flex";
-    imagesRow.style.justifyContent = "center";
-    imagesRow.style.alignItems = "center";
-    imagesRow.style.marginBottom = "10px";
-
+  function makeImgBox(src, caption, fitMode) {
+    const box = document.createElement("div");
+    box.style.cssText = "flex:1 1 240px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.10);overflow:hidden;display:flex;flex-direction:column;";
     const img = document.createElement("img");
-    img.src = item.image || item.image_url || item.image_real || item.image_layout || "default-image.jpg";
-    img.alt = item["name_" + currentLang] || item["display name"] || "Location image";
-    img.style.width = "100%";
-    img.style.maxWidth = "500px";
-    img.style.borderRadius = "12px";
-    img.style.objectFit = "cover";
-    img.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
-    imagesRow.appendChild(img);
-
-    page.appendChild(imagesRow);
+    img.src = src;
+    img.alt = caption;
+    img.style.cssText = `width:100%;height:210px;object-fit:${fitMode};background:#f0f0f0;`;
+    img.onerror = () => { box.style.display = "none"; };
+    const cap = document.createElement("p");
+    cap.textContent = caption;
+    cap.style.cssText = "text-align:center;font-size:12px;color:#666;padding:6px 4px;margin:0;border-top:1px solid #eee;";
+    box.appendChild(img);
+    box.appendChild(cap);
+    return box;
   }
 
-  // White content card (Description & Directions) at the bottom
-  const contentBox = document.createElement("div");
-  contentBox.style.width = "100%";
-  contentBox.style.background = "#fff";
-  contentBox.style.padding = "25px";
-  contentBox.style.borderRadius = "12px";
-  contentBox.style.boxShadow = "0 4px 15px rgba(0,0,0,0.06)";
+  if (hasLayout && hasReal) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;flex-wrap:wrap;gap:12px;";
+    row.appendChild(makeImgBox(item.image_layout, "Floor Layout Map", "contain"));
+    row.appendChild(makeImgBox(item.image_real,   "Room Entrance Photo", "cover"));
+    page.appendChild(row);
+  } else if (hasReal) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;justify-content:center;";
+    const box = document.createElement("div");
+    box.style.cssText = "background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.10);overflow:hidden;max-width:520px;width:100%;";
+    const img = document.createElement("img");
+    img.src = item.image_real;
+    img.alt = item["name_" + currentLang] || item["display name"] || "";
+    img.style.cssText = "width:100%;max-height:300px;object-fit:cover;";
+    img.onerror = () => { box.style.display = "none"; };
+    box.appendChild(img);
+    row.appendChild(box);
+    page.appendChild(row);
+  }
 
-  // Title container to place Title and Speak repeat button side-by-side
-  const titleContainer = document.createElement("div");
-  titleContainer.style.display = "flex";
-  titleContainer.style.justifyContent = "space-between";
-  titleContainer.style.alignItems = "center";
-  titleContainer.style.marginBottom = "15px";
-  titleContainer.style.flexWrap = "wrap";
-  titleContainer.style.gap = "10px";
+  /* ---- INFO CARD ---- */
+  const card = document.createElement("div");
+  card.style.cssText = "background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.10);padding:20px;";
+
+  /* Title row */
+  const titleRow = document.createElement("div");
+  titleRow.style.cssText = "display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px;";
 
   const title = document.createElement("h2");
   title.textContent = item["name_" + currentLang] || item["display name"] || "";
-  title.style.margin = "0";
-  title.style.color = "#333";
+  title.style.cssText = "margin:0;font-size:20px;font-weight:700;flex:1 1 auto;";
 
-  // Rounded pill Repeat Read Aloud button
-  const speakBtn = document.createElement("button");
-  const SPEAK_LABELS = {
-    en: "🔊 Read Aloud",
-    te: "🔊 గట్టిగా చదవండి",
-    hi: "🔊 बोलकर सुनाएं",
-    ta: "🔊 உரக்கப் படிக்க",
-    kn: "🔊 ಜೋರಾಗಿ ಓದಿ",
-    ml: "🔊 ഉറക്കെ വായിക്കുക",
-    ur: "🔊 آواز سنیں"
-  };
-  speakBtn.textContent = SPEAK_LABELS[currentLang] || SPEAK_LABELS.en;
-  speakBtn.style.padding = "8px 16px";
-  speakBtn.style.fontSize = "14px";
-  speakBtn.style.fontWeight = "bold";
-  speakBtn.style.cursor = "pointer";
-  speakBtn.style.border = "2px solid #0077b5";
-  speakBtn.style.borderRadius = "20px";
-  speakBtn.style.background = "#fff";
-  speakBtn.style.color = "#0077b5";
-  speakBtn.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
-  speakBtn.style.transition = "all 0.2s ease";
-
-  speakBtn.onmouseenter = () => {
-    speakBtn.style.background = "#0077b5";
-    speakBtn.style.color = "#fff";
-    speakBtn.style.transform = "translateY(-1px)";
-  };
-  speakBtn.onmouseleave = () => {
-    speakBtn.style.background = "#fff";
-    speakBtn.style.color = "#0077b5";
-    speakBtn.style.transform = "translateY(0)";
+  const readBtn = document.createElement("button");
+  readBtn.innerHTML = "&#128266; Read Aloud";
+  readBtn.style.cssText = "background:#e8f0fe;color:#1a73e8;border:none;border-radius:20px;padding:8px 16px;font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;";
+  readBtn.onclick = () => {
+    const parts = [
+      item["name_" + currentLang] || item["display name"] || "",
+      item["description_" + currentLang] || "",
+      item["direction_" + currentLang] || item.direction_en || ""
+    ].filter(Boolean).join(". ");
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(parts);
+    utt.lang = LANG_CODES[currentLang] || "en-US";
+    window.speechSynthesis.speak(utt);
   };
 
-  speakBtn.onclick = () => {
-    speakDetails(item);
-  };
+  titleRow.appendChild(title);
+  titleRow.appendChild(readBtn);
+  card.appendChild(titleRow);
 
-  titleContainer.appendChild(title);
-  titleContainer.appendChild(speakBtn);
-  contentBox.appendChild(titleContainer);
-
-  const desc = document.createElement("p");
-  desc.textContent = item["description_" + currentLang] || "";
-  desc.style.fontSize = "16px";
-  desc.style.lineHeight = "1.6";
-  desc.style.color = "#555";
-  desc.style.marginTop = "0";
-  contentBox.appendChild(desc);
-
-  // Append Direction Info to the bottom content card
-  const directionText = item["direction_" + currentLang] || item.direction_en;
-  if (directionText) {
-    const dirContainer = document.createElement("div");
-    dirContainer.style.marginTop = "25px";
-    dirContainer.style.paddingTop = "20px";
-    dirContainer.style.borderTop = "1px solid #eee";
-
-    const dirTitle = document.createElement("h3");
-    const DIRECTION_LABELS = {
-      en: "Directions",
-      te: "దిశలు / మార్గం",
-      hi: "दिशा-निर्देश",
-      ta: "வழிகள்",
-      kn: "ಮಾರ್ಗಗಳು",
-      ml: "ദിശകൾ",
-      ur: "ہدایات"
-    };
-    dirTitle.textContent = "🧭 " + (DIRECTION_LABELS[currentLang] || DIRECTION_LABELS.en);
-    dirTitle.style.fontSize = "18px";
-    dirTitle.style.color = "#0077b5";
-    dirTitle.style.marginTop = "0";
-    dirTitle.style.marginBottom = "10px";
-
-    const dirDesc = document.createElement("p");
-    dirDesc.textContent = directionText;
-    dirDesc.style.fontSize = "15px";
-    dirDesc.style.lineHeight = "1.5";
-    dirDesc.style.color = "#333";
-    dirDesc.style.margin = "0";
-
-    dirContainer.appendChild(dirTitle);
-    dirContainer.appendChild(dirDesc);
-    contentBox.appendChild(dirContainer);
+  /* Description */
+  const descText = item["description_" + currentLang] || item.description_en || "";
+  if (descText) {
+    const hr = document.createElement("hr");
+    hr.style.cssText = "border:none;border-top:1px solid #eee;margin:0 0 12px;";
+    const desc = document.createElement("p");
+    desc.textContent = descText;
+    desc.style.cssText = "margin:0 0 16px;color:#333;line-height:1.65;font-size:15px;";
+    card.appendChild(hr);
+    card.appendChild(desc);
   }
 
-  page.appendChild(contentBox);
-
-  // External Navigation button is hidden/removed if internal images exist
-  if (!item.image_layout && !item.image_real) {
-    const bottomNav = document.createElement("div");
-    bottomNav.style.marginTop = "10px";
-    bottomNav.style.textAlign = "center";
-
-    const navBtn = document.createElement("button");
-    navBtn.textContent = BUTTON_LABELS.navigate[currentLang];
-    navBtn.style.padding = "12px 18px";
-    navBtn.style.fontSize = "16px";
-    navBtn.style.fontWeight = "bold";
-    navBtn.style.cursor = "pointer";
-
-    navBtn.onclick = () => {
-      window.location.href =
-        `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
-    };
-
-    bottomNav.appendChild(navBtn);
-    page.appendChild(bottomNav);
+  /* Directions */
+  const dirText = item["direction_" + currentLang] || item.direction_en || "";
+  if (dirText) {
+    const dirHr = document.createElement("hr");
+    dirHr.style.cssText = "border:none;border-top:1px solid #eee;margin:0 0 12px;";
+    const dirHead = document.createElement("div");
+    dirHead.style.cssText = "display:flex;align-items:center;gap:6px;margin-bottom:6px;";
+    const dirIcon = document.createElement("span");
+    dirIcon.textContent = "🧭";
+    const dirLabel = document.createElement("strong");
+    dirLabel.textContent = "Directions";
+    dirLabel.style.color = "#1a73e8";
+    dirHead.appendChild(dirIcon);
+    dirHead.appendChild(dirLabel);
+    const dirPara = document.createElement("p");
+    dirPara.textContent = dirText;
+    dirPara.style.cssText = "margin:0;color:#333;line-height:1.65;font-size:15px;";
+    card.appendChild(dirHr);
+    card.appendChild(dirHead);
+    card.appendChild(dirPara);
   }
 
+  /* Block / Floor meta */
+  const blockVal = item["block_" + currentLang] || item.block_en || "";
+  const floorVal = item["floor_" + currentLang] || item.floor_en || "";
+  if (blockVal || floorVal) {
+    const meta = document.createElement("p");
+    meta.style.cssText = "margin:14px 0 0;font-size:13px;color:#888;";
+    meta.textContent = [blockVal && ("📍 " + blockVal), floorVal && ("🏢 " + floorVal)].filter(Boolean).join("  ·  ");
+    card.appendChild(meta);
+  }
+
+  page.appendChild(card);
   app.appendChild(page);
-
-  // Trigger speech auto-guidance when entering details page
-  setTimeout(() => {
-    speakDetails(item);
-  }, 150);
 }
 
 /* ================= NIMS ENTRANCE (STANDALONE) ================= */
@@ -591,7 +400,7 @@ function renderOpdBlock() {
     } else if (currentLang === "ta") {
       text = opd.name_ta + " செல்ல வழிகாட்டல் தொடங்கியுள்ளது. தயவுசெய்து வழியை பின்பற்றவும்";
     } else if (currentLang === "ml") {
-      text = opd.name_ml + " ലേക്ക് ನಾವಿಗೇಷನ್ ആരംഭിച്ചു. ദയവായി വഴിയെ പിന്തുടരുക";
+      text = opd.name_ml + " ലേക്ക് നാവിഗേഷൻ ആരംഭിച്ചു. ദയവായി വഴിയെ പിന്തുടരുക";
     } else if (currentLang === "kn") {
       text = opd.name_kn + " ಕಡೆ ಮಾರ್ಗದರ್ಶನ ಪ್ರಾರಂಭವಾಗಿದೆ. ದಯವಿಟ್ಟು ದಾರಿಯನ್ನು ಅನುಸರಿಸಿ";
     } else if (currentLang === "ur") {
@@ -714,14 +523,13 @@ function renderApp() {
         }
 
         let placeName = l["name_" + currentLang] || l["display name"];
-        let direction = l["direction_" + currentLang] || l.direction_en;
-        let message = direction;
+        let message = "Navigation started. Please follow directions to " + placeName;
 
         if (currentLang === "te") message = placeName + " కు దారి చూపబడుతోంది. దయచేసి మార్గాన్ని అనుసరించండి";
         else if (currentLang === "hi") message = placeName + " के लिए मार्गदर्शन शुरू हो गया है। कृपया निर्देशों का पालन करें";
         else if (currentLang === "ta") message = placeName + " செல்ல வழிகாட்டல் தொடங்கியுள்ளது. தயவுசெய்து வழியை பின்பற்றவும்";
         else if (currentLang === "kn") message = placeName + " ಕಡೆ ಮಾರ್ಗದರ್ಶನ ಪ್ರಾರಂಭವಾಗಿದೆ. ದಯವಿಟ್ಟು ದಾರಿಯನ್ನು ಅನುಸರಿಸಿ";
-        else if (currentLang === "ml") message = placeName + " ലേക്ക് നாவിഗേഷൻ ആരംഭിച്ചു. ദಯವായി വഴിയെ പിന്തുടരുക";
+        else if (currentLang === "ml") message = placeName + " ലേക്ക് നാവിഗേഷൻ ആരംഭിച്ചു. ദയവായി വഴിയെ പിന്തുടരുക";
         else if (currentLang === "ur") message = placeName + " کے لیے رہنمائی شروع ہو گئی ہے۔ براہ کرم ہدایات پر عمل کریں";
 
         window.speechSynthesis.cancel();
@@ -809,7 +617,7 @@ function renderSearchResults() {
         else if (currentLang === "hi") message = placeName + " के लिए मार्गदर्शन शुरू हो गया है। कृपया निर्देशों का पालन करें";
         else if (currentLang === "ta") message = placeName + " செல்ல வழிகாட்டல் தொடங்கியுள்ளது. தயவுசெய்து வழியை பின்பற்றவும்";
         else if (currentLang === "kn") message = placeName + " ಕಡೆ ಮಾರ್ಗದರ್ಶನ ಪ್ರಾರಂಭವಾಗಿದೆ. ದಯವಿಟ್ಟು ದಾರಿಯನ್ನು ಅನುಸರಿಸಿ";
-        else if (currentLang === "ml") message = placeName + " ലേക്ക് ನಾವിഗേഷൻ ಆರಂಭിച്ചു. ದಯವಿಟ್ಟು വഴിയെ പിന്തുടരുക";
+        else if (currentLang === "ml") message = placeName + " ലേക്ക് നാവിഗേഷൻ ആരംഭിച്ചു. ദയവായി വഴിയെ പിന്തുടരുക";
         else if (currentLang === "ur") message = placeName + " کے لیے رہنمائی شروع ہو گئی ہے۔ براہ کرم ہدایات پر عمل کریں";
 
         window.speechSynthesis.cancel();
@@ -894,7 +702,23 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ================= FINAL BACK / SWIPE HANDLING =================
-window.addEventListener("popstate", () => {
+window.addEventListener("popstate", (e) => {
+  /* Coming back from the details page — restore all hidden sections */
+  const heroEl  = document.getElementById("hero-section");
+  const nimsEl  = document.getElementById("Nims-Entrance-container");
+  const opdEl   = document.getElementById("Opd-Entrance-container");
+
+  /* If #app has the details page content (no <ul> inside), it's the details view */
+  const isDetailsView = !document.querySelector("#app ul");
+  if (isDetailsView) {
+    window.speechSynthesis.cancel();
+    if (heroEl)  heroEl.style.display  = "";
+    if (nimsEl)  nimsEl.style.display  = "";
+    if (opdEl)   opdEl.style.display   = "";
+    renderApp();
+    return;
+  }
+
   const openLocation = document.querySelector('#app ul li div[style*="block"]');
   if (openLocation) {
     openLocation.style.display = "none";
